@@ -16,6 +16,7 @@ import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.Window;
@@ -48,15 +49,26 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
     private double lastValue;
     private Camera camera;
 
+
     @Override
     public void onBackPressed() {
-        super.onBackPressed();
+        Toast.makeText(getApplicationContext(),"You Are Not Allowed to Exit the App", Toast.LENGTH_LONG).show();
+    }
 
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        if(keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_HOME){
+            Toast.makeText(getApplicationContext(), "You Are Not Allowed to Exit the App", Toast.LENGTH_LONG).show();
+            return true;
+        }
+
+        return super.onKeyDown(keyCode, event);
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
         super.onCreate(savedInstanceState);
@@ -159,7 +171,8 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
     @Override
     public void onSensorChanged(SensorEvent event) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-       if(Math.abs(event.values[2] - lastValue) > Double.parseDouble(prefs.getString("minvalue_record", ""))){
+        System.out.println(Math.abs(event.values[2] - lastValue));
+       if((Math.abs(event.values[2] - lastValue) > Double.parseDouble(prefs.getString("minvalue_record", "0")))){
            System.out.println(event.values[0]+ " , "+event.values[1] + " , "+event.values[2]);
            takePic(event.values[2]);
        }
@@ -199,6 +212,7 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
         Camera.PictureCallback mPicture = new Camera.PictureCallback() {
             @Override
             public void onPictureTaken(byte[] data, Camera camera) {
+
                 File mediaStorageDir = new File(
                         Environment
                                 .getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
@@ -238,9 +252,11 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
 
                 new PostDetailsTask().execute(r);
                 Toast.makeText(MainActivity.this, "Picture taken!", Toast.LENGTH_LONG).show();
-                MainActivity.this.camera.stopPreview();
-                MainActivity.this.camera.release();
-                MainActivity.this.camera = null;
+                if(camera != null) {
+                    MainActivity.this.camera.stopPreview();
+                    MainActivity.this.camera.release();
+                    MainActivity.this.camera = null;
+                }
             }
         };
         camera.takePicture(null, null, mPicture);
